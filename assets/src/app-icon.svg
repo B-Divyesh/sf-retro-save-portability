@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Retro Save Portability cassette mark</title>
+  <rect width="512" height="512" rx="92" fill="#f3e9d2"/>
+  <path d="M92 140h328v232H92z" fill="#c74428" stroke="#171713" stroke-width="24"/>
+  <path d="M132 188h248v112H132z" fill="#fffdf6" stroke="#171713" stroke-width="18"/>
+  <circle cx="200" cy="244" r="38" fill="#f3e9d2" stroke="#171713" stroke-width="18"/>
+  <circle cx="312" cy="244" r="38" fill="#f3e9d2" stroke="#171713" stroke-width="18"/>
+  <path d="M172 332h168l34 40H138z" fill="#12664f" stroke="#171713" stroke-width="18" stroke-linejoin="round"/>
+</svg>
