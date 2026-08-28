@@ -1,0 +1,109 @@
+name: Release desktop installers
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            label: macos-arm64
+            bundles: dmg
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            label: macos-x64
+            bundles: dmg
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            label: windows-x64
+            bundles: msi,nsis
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            label: linux-x64
+            bundles: appimage,deb
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Install Linux system packages
+        if: startsWith(matrix.os, 'ubuntu')
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - run: npm ci
+      - uses: tauri-apps/tauri-action@v0
+        with:
+          projectPath: .
+          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+      - name: Collect release files
+        shell: bash
+        run: |
+          mkdir -p release-assets
+          version="$(node -p "require('./package.json').version")"
+          while IFS= read -r file; do
+            case "$file" in
+              *.AppImage) out="retro-save-portability_${version}_${{ matrix.label }}.AppImage" ;;
+              *.deb) out="retro-save-portability_${version}_${{ matrix.label }}.deb" ;;
+              *.dmg) out="retro-save-portability_${version}_${{ matrix.label }}.dmg" ;;
+              *.msi) out="retro-save-portability_${version}_${{ matrix.label }}.msi" ;;
+              *-setup.exe|*.exe) out="retro-save-portability_${version}_${{ matrix.label }}-setup.exe" ;;
+              *) continue ;;
+            esac
+            cp "$file" "release-assets/$out"
+          done < <(find "src-tauri/target/${{ matrix.target }}/release/bundle" -type f)
+          test "$(find release-assets -type f | wc -l)" -gt 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.label }}
+          path: release-assets/*
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+      - name: Create checksums and latest manifest
+        run: node scripts/make-release-manifest.mjs release-assets
+        env:
+          RELEASE_VERSION: 0.1.0
+      - name: Resolve release tag
+        id: release
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release.outputs.tag }}
+          name: Retro Save Portability ${{ steps.release.outputs.tag }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            release-assets/*
