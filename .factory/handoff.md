@@ -47,8 +47,11 @@ Verified locally on 2026-08-28:
 - Hero assets: 768 px AVIF 20 KB / WebP 48 KB; 1280 px AVIF 76 KB / WebP
   156 KB. Source, prompt, review, and provenance are in `assets/src/` and
   `.factory/design.md`.
-- Release workflow: pending the `v0.1.0` tag at the time this file was written;
-  update this section after GitHub completes the platform matrix.
+- Release workflow run `33156187991`: all four build jobs and the publish job
+  passed. The v0.1.0 release contains both macOS DMGs, Windows MSI/EXE, Linux
+  AppImage/DEB, `SHA256SUMS`, and valid six-platform `latest.json`. Independently
+  downloaded and verified the Linux DEB at SHA-256
+  `ed184aa8243ea2df97fad43a05742b3b172246211625cd483b95d3d6920b1694`.
 
 ## Known gaps
 
