@@ -1,0 +1,11 @@
+{
+  "slug": "retro-save-portability",
+  "title": "Retro Save Portability",
+  "territory": "games-creative",
+  "user": "People returning to legally owned old games across handhelds, PCs, and emulators who need to identify, preserve, and move saves before trying a new launcher.",
+  "smallest_useful_product": "Desktop utility that detects supported emulator save locations, fingerprints games and save formats, makes timestamped portable bundles, and warns before incompatible imports.",
+  "success_measure": "90% of pilot transfers restore a detected save on a second machine without manual folder hunting.",
+  "artifact_class": "desktop-app",
+  "monetization": "one-time",
+  "constraints": "Never ship copyrighted ROMs/BIOS; require user-selected folders; provide read-only scan before writes; document emulator-specific limitations."
+}
