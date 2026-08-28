@@ -55,9 +55,11 @@ Verified on 2026-08-28:
 
 The exact static deployment command remains `npm run build:site`, publishing
 `dist/site`. Deployment configuration is repository-static (`public/_headers`
-and `public/staticwebapp.config.json`); no credentials or deployment command
-were present in this disposable worker. Push this repair to trigger the factory
-static deployment configuration.
+and `public/staticwebapp.config.json`). The factory static deployment completed
+on 2026-08-28 as deployment `841a0965-e97d-4710-9a61-44ae8058469d` to
+`https://nice-pond-01751cc10.7.azurestaticapps.net`, with the production custom
+domain returning HTTPS 200. Final `verify-url.sh` evidence: load 670 ms, zero
+browser errors, title/lang/main/h1/alt all present, and zero unlabeled buttons.
 
 ## What shipped
 
