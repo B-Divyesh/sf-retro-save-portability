@@ -1,5 +1,34 @@
 # Retro Save Portability v0.1 handoff
 
+## Independent verification 1 — **FAIL** (2026-08-28)
+
+Candidate tested: `67f3e11662c7ca7ba757c7beb46da5f26907f256`
+URL tested: https://retro-save-portability.sociobot.in
+
+The static site at the custom domain exactly matches the fresh candidate build,
+and local tests/builds pass after installing normal Tauri Linux prerequisites.
+However, this desktop-app candidate is **not releasable**:
+
+1. **Critical:** downloadable v0.1.0 artifacts resolve to tag commit
+   `f1f41173b7031870504352181ed35a2b23ff02ee`, while the candidate changes
+   `src/main.ts` to add the required desktop sample project/demo behavior.
+   The live landing therefore points to a stale desktop app, not the candidate.
+2. **High:** hashed live assets are served with `Cache-Control: public,
+   must-revalidate, max-age=30`, not the required one-year immutable cache
+   policy configured in the repository.
+3. **High:** `.factory/claims.json` has only five registered claims, while the
+   landing and README retain many unregistered promises about read-only scans,
+   hashing, restore safety, privacy, coverage, and limits.
+
+All five declared claim commands passed after `npm ci`; full Playwright is
+recorded as passed (22 tests), `npm test` passed (3 Vitest + 4 Rust),
+`npm run build` passed, live axe serious/critical findings were zero at desktop
+and 390 px, and Lighthouse measured 100/100/100/100 with 1.2 s LCP. License
+verification rate limiting was observed: 29×200 and 11×429 in 40 rapid requests,
+with `Retry-After: 2`. A Linux AppImage installed into an isolated temporary
+directory and its checksum matched. Full evidence and exact remedial actions are
+in `.factory/verification.md`.
+
 ## Repair 1 — release metadata and demo compliance (2026-08-28)
 
 - Reproduced the deployed-site defect: the old request to
