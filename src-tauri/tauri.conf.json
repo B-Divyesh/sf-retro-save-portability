@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Retro Save Portability",
+  "version": "0.1.0",
+  "identifier": "in.sociobot.retro-save-portability",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build:app",
+    "frontendDist": "../dist/app"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Retro Save Portability",
+        "width": 1160,
+        "height": 780,
+        "minWidth": 390,
+        "minHeight": 620,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost; connect-src 'self' https://api.sociobot.in; style-src 'self'; script-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Utility",
+    "shortDescription": "Carry your progress safely",
+    "longDescription": "Read-only save discovery, portable verified bundles, and compatibility-aware restore for legally owned retro games.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "linux": {
+      "appimage": { "bundleMediaFramework": false },
+      "deb": { "depends": [] }
+    }
+  }
+}
