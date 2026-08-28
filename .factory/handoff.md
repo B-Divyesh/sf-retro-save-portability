@@ -1,5 +1,64 @@
 # Retro Save Portability v0.1 handoff
 
+## Repair 1 — release metadata and demo compliance (2026-08-28)
+
+- Reproduced the deployed-site defect: the old request to
+  `github.com/.../releases/latest/download/latest.json` responds with a 302
+  download redirect without `Access-Control-Allow-Origin`, while the GitHub
+  Releases API responds with `Access-Control-Allow-Origin: *`.
+- Replaced that browser fetch with
+  `https://api.github.com/repos/B-Divyesh/sf-retro-save-portability/releases/latest`.
+  Successful metadata is cached in `localStorage` as `rsp:latest-release:v1`
+  for one hour. Installer buttons now resolve `browser_download_url` assets from
+  the API; they may navigate to GitHub but are never fetched as page data.
+- Missing release, rate-limit, malformed response, storage failure, and offline
+  paths are caught and render “Downloads are being published” plus the direct
+  GitHub Releases page. No exception escapes the release loader.
+- Added `/demo/`, a three-save sample transfer desk with persistent demo banner,
+  reset, and start-for-real actions. It uses only
+  `demo:retro-save-portability:sample`; the desktop first-run view now also has
+  **Load sample project** under `demo:retro-save-portability:desktop`.
+- Added `.factory/claims.json`, `.factory/demo.md`, and `.factory/copy-audit.md`.
+  The landing first screen now uses plain, job-focused copy and links straight to
+  the sample data. Added canonical/OG/Twitter metadata, static-web-app headers,
+  a 404 page, demo sitemap entry, and the CORS API CSP allowance.
+
+### Repair verification
+
+Run from a clean checkout:
+
+```sh
+npm ci
+npm run build
+npm test
+npm run test:e2e
+```
+
+Verified on 2026-08-28:
+
+- `npm run build`: passed. `dist/app` and `dist/site` produced. Landing JavaScript
+  is 1.89 KB gzip; demo JavaScript is 0.70 KB gzip; site CSS is 3.53 KB gzip.
+- `npm test`: passed — 3 Vitest tests and 4 Rust core tests.
+- `npm run test:e2e`: passed — 21 passed, 1 intentional project skip. Chromium
+  desktop and 390px mobile cover keyboard interaction, no-overflow mobile
+  layout, axe serious/critical checks, title/lang/main/h1/alt, console-free
+  successful release loading, API-cache behaviour, unavailable-release fallback,
+  desktop sample project, isolated demo storage, and demo third-party-network
+  privacy.
+- Every entry in `.factory/claims.json` was run individually with its listed
+  Playwright grep command and passed for desktop and mobile.
+- Live identity check: GitHub API `releases/latest` returned 200 with
+  `access-control-allow-origin: *`; the previous latest-download endpoint
+  returned a 302 redirect and no CORS response header, confirming the root cause.
+
+### Repair deployment
+
+The exact static deployment command remains `npm run build:site`, publishing
+`dist/site`. Deployment configuration is repository-static (`public/_headers`
+and `public/staticwebapp.config.json`); no credentials or deployment command
+were present in this disposable worker. Push this repair to trigger the factory
+static deployment configuration.
+
 ## What shipped
 
 - Tauri 2 desktop app with a Rust-only filesystem boundary and responsive vanilla

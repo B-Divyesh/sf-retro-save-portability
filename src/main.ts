@@ -48,6 +48,16 @@ type Step = "scan" | "bundle" | "restore";
 interface JournalEntry { date: string; action: "bundle" | "restore"; count: number; location: string; device: string; }
 const JOURNAL_KEY = "rsp:keeper-journal";
 const DEVICE_KEY = "rsp:keeper-device";
+const DEMO_KEY = "demo:retro-save-portability:desktop";
+
+const sampleScan: ScanResult = {
+  root: "Demo sample folder (no files on your device)", scannedFiles: 3, skippedFiles: 0, warnings: [],
+  entries: [
+    { id: "demo-golden-sun", path: "demo:GoldenSun.sav", relativePath: "mGBA/saves/GoldenSun.sav", fileName: "GoldenSun.sav", gameName: "Golden Sun", extension: "sav", formatLabel: "Native battery save", emulator: "mGBA", size: 32768, modified: "2026-08-28T08:00:00Z", sha256: "a".repeat(64), confidence: "high" },
+    { id: "demo-chrono", path: "demo:chrono.srm", relativePath: "RetroArch/saves/chrono.srm", fileName: "chrono.srm", gameName: "Chrono Trigger", extension: "srm", formatLabel: "Battery save", emulator: "RetroArch", size: 8192, modified: "2026-08-27T20:12:00Z", sha256: "b".repeat(64), confidence: "high" },
+    { id: "demo-road-trip", path: "demo:slot-01.sav", relativePath: "Imported/slot-01.sav", fileName: "slot-01.sav", gameName: "Road trip save", extension: "sav", formatLabel: "General save", emulator: "Unknown emulator", size: 131072, modified: "2026-08-21T14:25:00Z", sha256: "c".repeat(64), confidence: "review" }
+  ]
+};
 
 const state: {
   step: Step;
@@ -57,6 +67,7 @@ const state: {
   busy: boolean;
   notice: { kind: "success" | "error" | "info"; text: string } | null;
   pro: boolean;
+  demo: boolean;
 } = {
   step: "scan",
   scan: null,
@@ -64,7 +75,8 @@ const state: {
   plan: null,
   busy: false,
   notice: null,
-  pro: cachedLicenseValid()
+  pro: cachedLicenseValid(),
+  demo: false
 };
 
 const appElement = document.querySelector<HTMLDivElement>("#app");
@@ -116,7 +128,7 @@ function scanView(): string {
       <p class="eyebrow">Read-only first pass</p>
       <h2 id="scan-title">Find the progress worth carrying.</h2>
       <p>Choose an emulator or saves folder. We look for known save formats, identify likely emulators, and fingerprint every match. Nothing is changed.</p>
-      <button class="primary" type="button" id="choose-folder" ${state.busy ? "disabled" : ""}>${state.busy ? "Scanning…" : "Choose save folder"}</button>
+      <div class="action-row"><button class="primary" type="button" id="choose-folder" ${state.busy ? "disabled" : ""}>${state.busy ? "Scanning…" : "Choose save folder"}</button><button class="secondary" type="button" id="load-sample">Load sample project</button></div>
       ${!isTauri() ? `<p class="inline-note">Folder scanning is available inside the desktop app. This browser view is a layout preview only.</p>` : ""}
       <details><summary>What gets scanned?</summary><p>Battery saves and memory-card files such as .srm, .sav, .dsv, .mcr, .gci and related sidecars. ROMs and BIOS files are ignored.</p></details>
     </section>`;
@@ -175,7 +187,7 @@ function proPanel(): string {
 
 function render(): void {
   app.innerHTML = `<header class="app-header"><a class="wordmark" href="#" aria-label="Retro Save Portability home"><span class="logo-mark" aria-hidden="true"><i></i><i></i></span><span>Retro Save<br>Portability</span></a><button class="keeper-button" id="open-license" type="button">${state.pro ? "Keeper active" : "Unlock Keeper"}</button></header>
-    <main id="main"><div class="intro"><p class="kicker">Save-transfer desk · v0.1</p><h1>Carry your<br><em>progress.</em></h1><p>Find hardware saves, make a verified portable bundle, and restore with compatibility warnings—before changing launchers.</p></div>${rail()}<div class="workbench">${state.notice ? `<div class="notice ${state.notice.kind}" role="${state.notice.kind === "error" ? "alert" : "status"}">${escapeHtml(state.notice.text)}<button aria-label="Dismiss message" id="dismiss-notice">×</button></div>` : ""}${state.step === "scan" ? scanView() : state.step === "bundle" ? bundleView() : restoreView()}</div></main>
+    <main id="main">${state.demo ? `<div class="demo-banner" role="status"><p>Demo — sample data, nothing is saved to your real files.</p><div class="demo-banner-actions"><button type="button" id="reset-demo">Reset demo</button><button type="button" id="start-real">Start for real</button></div></div>` : ""}<div class="intro"><p class="kicker">Save-transfer desk · v0.1</p><h1>Carry your<br><em>progress.</em></h1><p>Find hardware saves, make a verified portable bundle, and restore with compatibility warnings—before changing launchers.</p></div>${rail()}<div class="workbench">${state.notice ? `<div class="notice ${state.notice.kind}" role="${state.notice.kind === "error" ? "alert" : "status"}">${escapeHtml(state.notice.text)}<button aria-label="Dismiss message" id="dismiss-notice">×</button></div>` : ""}${state.step === "scan" ? scanView() : state.step === "bundle" ? bundleView() : restoreView()}</div></main>
     <footer><span>Local-first · No telemetry · No ROMs</span><a href="https://retro-save-portability.sociobot.in/help">Emulator notes</a></footer>${proPanel()}`;
   bindEvents();
 }
@@ -187,6 +199,9 @@ function bindEvents(): void {
     render();
   }));
   document.querySelector("#choose-folder")?.addEventListener("click", scanFolder);
+  document.querySelector("#load-sample")?.addEventListener("click", loadSampleProject);
+  document.querySelector("#reset-demo")?.addEventListener("click", loadSampleProject);
+  document.querySelector("#start-real")?.addEventListener("click", () => { state.demo = false; state.scan = null; state.selected.clear(); state.step = "scan"; localStorage.removeItem(DEMO_KEY); render(); });
   document.querySelector("#select-all")?.addEventListener("change", event => {
     const checked = (event.currentTarget as HTMLInputElement).checked;
     state.selected = new Set(checked ? state.scan?.entries.map(entry => entry.id) : []);
@@ -250,6 +265,12 @@ async function scanFolder(): Promise<void> {
 
 async function createPortableBundle(): Promise<void> {
   if (!state.scan) return;
+  if (state.demo) {
+    localStorage.setItem(DEMO_KEY, JSON.stringify({ bundleReviewed: true }));
+    state.step = "restore";
+    setNotice("success", "Demo bundle review is ready. Sample data stayed separate from your files.");
+    return;
+  }
   const date = new Date().toISOString().slice(0, 10);
   const output = await save({ title: "Save portable bundle", defaultPath: `retro-saves-${date}.rspbundle`, filters: [{ name: "Retro Save bundle", extensions: ["rspbundle"] }] });
   if (!output) return;
@@ -264,6 +285,17 @@ async function createPortableBundle(): Promise<void> {
   } catch (error) {
     setNotice("error", String(error));
   } finally { state.busy = false; render(); }
+}
+
+function loadSampleProject(): void {
+  state.demo = true;
+  state.scan = structuredClone(sampleScan);
+  state.selected = new Set(sampleScan.entries.map(entry => entry.id));
+  state.plan = null;
+  state.step = "scan";
+  state.notice = { kind: "info", text: "Sample project loaded. It uses separate demo storage." };
+  localStorage.setItem(DEMO_KEY, JSON.stringify({ openedAt: Date.now() }));
+  render();
 }
 
 async function inspectPortableBundle(): Promise<void> {

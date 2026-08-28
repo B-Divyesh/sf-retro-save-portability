@@ -50,10 +50,22 @@ npm run build:site   # exact static deploy command -> dist/site
 Tauri. No platform installers are built in the factory worker; the release
 workflow builds them on GitHub’s macOS, Windows, and Linux runners.
 
+## Try the sample project
+
+Open [the web demo](https://retro-save-portability.sociobot.in/demo/) or click
+**Try it with sample data** on the landing page. It opens three prepared save
+records and keeps its state under a `demo:` browser-storage key. It cannot read
+folders, write a real bundle, or affect desktop data. The desktop first-run
+screen also has **Load sample project**; **Start for real** discards that sample
+and returns to the folder picker. See [demo notes](.factory/demo.md).
+
 ## Install
 
 The landing page at <https://retro-save-portability.sociobot.in> detects the OS
-and reads the checksum manifest from the latest GitHub release.
+and reads release metadata from GitHub’s CORS-enabled Releases API. A successful
+response is cached locally for one hour. If a release is missing, rate-limited,
+or unavailable offline, it keeps a safe GitHub Releases link and says downloads
+are being published; it never fetches GitHub’s non-CORS download redirect.
 
 ```sh
 # Linux or macOS (downloads and verifies SHA-256 first)

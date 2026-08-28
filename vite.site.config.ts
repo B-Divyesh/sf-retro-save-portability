@@ -12,6 +12,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         index: resolve(import.meta.dirname, "site/index.html"),
+        demo: resolve(import.meta.dirname, "site/demo/index.html"),
         help: resolve(import.meta.dirname, "site/help/index.html"),
         privacy: resolve(import.meta.dirname, "site/privacy/index.html"),
         terms: resolve(import.meta.dirname, "site/terms/index.html")

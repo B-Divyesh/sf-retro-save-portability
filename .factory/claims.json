@@ -1,0 +1,37 @@
+[
+  {
+    "id": "release-api-cache",
+    "claim": "The download button reads the latest GitHub release without a browser CORS error and caches a successful response for one hour.",
+    "where": "download ticket, README",
+    "test": "npm run test:e2e -- --grep @claim:release-api-cache",
+    "sandbox": "mock GitHub Releases API; reload the landing page and assert the asset link renders with one API request"
+  },
+  {
+    "id": "published-download-state",
+    "claim": "When no release is available, the page says downloads are being published and links to GitHub releases.",
+    "where": "download ticket",
+    "test": "npm run test:e2e -- --grep @claim:published-download-state",
+    "sandbox": "mock a 404 latest-release response and assert the calm fallback and no console errors"
+  },
+  {
+    "id": "demo-sandbox",
+    "claim": "The web demo uses sample data in a separate browser-storage namespace.",
+    "where": "landing action, /demo",
+    "test": "npm run test:e2e -- --grep @claim:demo-sandbox",
+    "sandbox": "fresh browser context opens /demo, reviews the sample bundle, and checks only demo: storage is written"
+  },
+  {
+    "id": "demo-privacy",
+    "claim": "The sample demo sends no data to a third party.",
+    "where": "/demo, privacy page",
+    "test": "npm run test:e2e -- --grep @claim:demo-privacy",
+    "sandbox": "fresh browser context records every request during the complete sample-bundle review"
+  },
+  {
+    "id": "desktop-sample-project",
+    "claim": "The desktop app can load a sample project without choosing a folder.",
+    "where": "desktop first-run screen, README",
+    "test": "npm run test:e2e -- --grep @claim:desktop-sample-project",
+    "sandbox": "fresh browser app shell clicks Load sample project and asserts three sample saves and demo storage"
+  }
+]

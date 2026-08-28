@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f3e9d2" />
+    <meta name="description" content="Try Retro Save Portability with sample save data that stays separate from your files." />
+    <link rel="canonical" href="https://retro-save-portability.sociobot.in/demo/" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <title>Demo — Retro Save Portability</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to demo</a>
+    <header class="site-header"><a class="wordmark" href="/" aria-label="Retro Save Portability home"><span class="logo-mark" aria-hidden="true"><i></i><i></i></span><span>Retro Save<br>Portability</span></a><a class="small-download" href="/#download">Download</a></header>
+    <main id="main" class="demo-shell">
+      <div class="demo-banner" role="status"><p>Demo — sample data, nothing is saved to your real files.</p><div class="demo-banner-actions"><button type="button" id="reset-demo">Reset demo</button><a href="/#download">Start for real</a></div></div>
+      <section class="demo-title" aria-labelledby="demo-title"><p class="eyebrow">Sample transfer desk</p><h1 id="demo-title">Inspect three sample saves.</h1><p>These examples show what a read-only scan labels before you build a portable bundle.</p></section>
+      <section class="demo-desk" aria-labelledby="sample-title"><header><span>READ-ONLY SAMPLE SCAN</span><span id="sample-title">3 saves found</span></header><ul class="demo-list" id="demo-list"></ul><button type="button" class="primary" id="make-demo-bundle">Review portable bundle</button><p class="demo-status" id="demo-status" aria-live="polite"></p></section>
+      <p class="demo-footnote">The demo only uses the <code>demo:retro-save-portability:</code> browser-storage namespace. It cannot read or write folders, bundles, licenses, or app settings.</p>
+    </main>
+    <footer class="site-footer"><p>Preservation utility for legally owned games.</p><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a></nav><small>Built by Param Factory · v0.1.0</small></footer>
+    <script type="module" src="/demo.ts"></script>
+  </body>
+</html>
