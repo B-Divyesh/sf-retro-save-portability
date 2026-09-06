@@ -33,6 +33,7 @@ test("@claim:desktop-sample-project loads isolated sample saves", async ({ page 
   expect(storage.filter(key => key.startsWith("rsp:"))).toEqual(["rsp:real-sentinel"]);
   await page.getByRole("button", { name: "Start for real" }).click();
   await expect(page.getByRole("heading", { name: "Find saves in a selected folder." })).toBeVisible();
+  await expect(page.getByText("Sample project loaded. It uses separate demo storage.")).toHaveCount(0);
   expect(await page.evaluate(() => localStorage.getItem("demo:retro-save-portability:desktop"))).toBeNull();
   expect(await page.evaluate(() => localStorage.getItem("rsp:real-sentinel"))).toBe("unchanged");
 });

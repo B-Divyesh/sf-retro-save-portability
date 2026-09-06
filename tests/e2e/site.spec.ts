@@ -4,10 +4,10 @@ import { expect, test } from "@playwright/test";
 test.beforeEach(async ({ page }) => {
   await page.route("https://api.github.com/repos/B-Divyesh/sf-retro-save-portability/releases/latest", route => route.fulfill({
     contentType: "application/json",
-    body: JSON.stringify({ tag_name: "v0.1.2", html_url: "https://github.com/B-Divyesh/sf-retro-save-portability/releases/tag/v0.1.2", assets: [
-      { name: "retro-save-portability_0.1.2_linux-x64.AppImage", browser_download_url: "https://github.com/example/app.AppImage", digest: `sha256:${"a".repeat(64)}` },
-      { name: "retro-save-portability_0.1.2_macos-arm64.dmg", browser_download_url: "https://github.com/example/app.dmg", digest: `sha256:${"b".repeat(64)}` },
-      { name: "retro-save-portability_0.1.2_windows-x64.msi", browser_download_url: "https://github.com/example/app.msi", digest: `sha256:${"c".repeat(64)}` }
+    body: JSON.stringify({ tag_name: "v0.1.3", html_url: "https://github.com/B-Divyesh/sf-retro-save-portability/releases/tag/v0.1.3", assets: [
+      { name: "retro-save-portability_0.1.3_linux-x64.AppImage", browser_download_url: "https://github.com/example/app.AppImage", digest: `sha256:${"a".repeat(64)}` },
+      { name: "retro-save-portability_0.1.3_macos-arm64.dmg", browser_download_url: "https://github.com/example/app.dmg", digest: `sha256:${"b".repeat(64)}` },
+      { name: "retro-save-portability_0.1.3_windows-x64.msi", browser_download_url: "https://github.com/example/app.msi", digest: `sha256:${"c".repeat(64)}` }
     ] })
   }));
 });

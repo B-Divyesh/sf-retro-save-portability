@@ -185,7 +185,7 @@ function proPanel(): string {
 
 function render(): void {
   app.innerHTML = `<header class="app-header"><a class="wordmark" href="#" aria-label="Retro Save Portability home"><span class="logo-mark" aria-hidden="true"><i></i><i></i></span><span>Retro Save<br>Portability</span></a><button class="keeper-button" id="open-license" type="button" ${state.demo ? "disabled" : ""}>${state.demo ? "Keeper unavailable in demo" : state.pro ? "Keeper active" : "Keeper license"}</button></header>
-    <main id="main">${state.demo ? `<div class="demo-banner" role="status"><p>Demo — sample data, nothing is saved to your real files.</p><div class="demo-banner-actions"><button type="button" id="reset-demo">Reset demo</button><button type="button" id="start-real">Start for real</button></div></div>` : ""}<div class="intro"><p class="kicker">Save transfer · v0.1.2</p><h1>Move retro<br><em>saves safely.</em></h1><p>For people changing emulators or computers: identify save files before moving them.</p></div>${rail()}<div class="workbench">${state.notice ? `<div class="notice ${state.notice.kind}" role="${state.notice.kind === "error" ? "alert" : "status"}">${escapeHtml(state.notice.text)}<button aria-label="Dismiss message" id="dismiss-notice">×</button></div>` : ""}${state.step === "scan" ? scanView() : state.step === "bundle" ? bundleView() : restoreView()}</div></main>
+    <main id="main">${state.demo ? `<div class="demo-banner" role="status"><p>Demo — sample data, nothing is saved to your real files.</p><div class="demo-banner-actions"><button type="button" id="reset-demo">Reset demo</button><button type="button" id="start-real">Start for real</button></div></div>` : ""}<div class="intro"><p class="kicker">Save transfer · v0.1.3</p><h1>Move retro<br><em>saves safely.</em></h1><p>For people changing emulators or computers: identify save files before moving them.</p></div>${rail()}<div class="workbench">${state.notice ? `<div class="notice ${state.notice.kind}" role="${state.notice.kind === "error" ? "alert" : "status"}">${escapeHtml(state.notice.text)}<button aria-label="Dismiss message" id="dismiss-notice">×</button></div>` : ""}${state.step === "scan" ? scanView() : state.step === "bundle" ? bundleView() : restoreView()}</div></main>
     <footer><span>Local save processing · No telemetry · No ROMs</span><a href="https://retro-save-portability.sociobot.in/help/">Emulator notes</a></footer>${state.demo ? "" : proPanel()}`;
   bindEvents();
 }
@@ -199,7 +199,16 @@ function bindEvents(): void {
   document.querySelector("#choose-folder")?.addEventListener("click", scanFolder);
   document.querySelector("#load-sample")?.addEventListener("click", loadSampleProject);
   document.querySelector("#reset-demo")?.addEventListener("click", loadSampleProject);
-  document.querySelector("#start-real")?.addEventListener("click", () => { state.demo = false; state.scan = null; state.selected.clear(); state.step = "scan"; localStorage.removeItem(DEMO_KEY); render(); });
+  document.querySelector("#start-real")?.addEventListener("click", () => {
+    state.demo = false;
+    state.scan = null;
+    state.selected.clear();
+    state.plan = null;
+    state.notice = null;
+    state.step = "scan";
+    localStorage.removeItem(DEMO_KEY);
+    render();
+  });
   document.querySelector("#select-all")?.addEventListener("change", event => {
     const checked = (event.currentTarget as HTMLInputElement).checked;
     state.selected = new Set(checked ? state.scan?.entries.map(entry => entry.id) : []);

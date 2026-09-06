@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 $repository = "B-Divyesh/sf-retro-save-portability"
-$version = "0.1.2"
+$version = "0.1.3"
 $base = "https://github.com/$repository/releases/latest/download"
 $file = "retro-save-portability_${version}_windows-x64.msi"
 $installTemp = Join-Path ([System.IO.Path]::GetTempPath()) ("rsp-" + [System.Guid]::NewGuid().ToString("N"))
