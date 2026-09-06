@@ -69,13 +69,13 @@ esac
       RSP_FIXTURE_SUMS: sums
     };
 
-    writeFileSync(sums, `${"0".repeat(64)}  retro-save-portability_0.1.1_linux-x64.AppImage\n`);
+    writeFileSync(sums, `${"0".repeat(64)}  retro-save-portability_0.1.2_linux-x64.AppImage\n`);
     const rejected = spawnSync("sh", ["public/install.sh"], { cwd: process.cwd(), env: environment, encoding: "utf8" });
     expect(rejected.status).not.toBe(0);
     expect(rejected.stderr).toContain("SHA-256 mismatch");
 
     const digest = execFileSync("shasum", ["-a", "256", artifact], { encoding: "utf8" }).split(/\s+/)[0];
-    writeFileSync(sums, `${digest}  retro-save-portability_0.1.1_linux-x64.AppImage\n`);
+    writeFileSync(sums, `${digest}  retro-save-portability_0.1.2_linux-x64.AppImage\n`);
     const accepted = spawnSync("sh", ["public/install.sh"], { cwd: process.cwd(), env: environment, encoding: "utf8" });
     expect(accepted.status, accepted.stderr).toBe(0);
     expect(readFileSync(join(installBin, "retro-save-portability"), "utf8")).toBe("candidate-appimage");

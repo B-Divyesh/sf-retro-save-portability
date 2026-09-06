@@ -6,7 +6,7 @@ It is for people returning to legally owned games before changing their setup. Y
 
 The app does not distribute games or BIOS files. It does not emulate games or bypass access controls.
 
-## What version 0.1.1 does
+## What version 0.1.2 does
 
 - Scans a selected folder without changing its files.
 - Recognises 15 save extensions and 11 emulator folder families.
@@ -79,7 +79,7 @@ irm https://retro-save-portability.sociobot.in/install.ps1 | iex
 
 The shell installer checks SHA-256 before installation. Releases provide macOS ARM64 and Intel, Windows MSI and EXE, and Linux AppImage and DEB files.
 
-Version 0.1.1 installers are unsigned. Review your operating system’s publisher warning before opening them.
+Version 0.1.2 installers are unsigned. Review your operating system’s publisher warning before opening them.
 
 ## Bundle format
 
