@@ -1,170 +1,164 @@
-# Retro Save Portability v0.1 handoff
+# Retro Save Portability v0.1.2 handoff
 
-## Independent verification 1 — **FAIL** (2026-08-28)
+## Repair 2 status — PASS (2026-09-06)
 
-Candidate tested: `67f3e11662c7ca7ba757c7beb46da5f26907f256`
-URL tested: https://retro-save-portability.sociobot.in
+Implementation SHA: `b996da94240d3930e4497d45721751b27bf2e54d`
 
-The static site at the custom domain exactly matches the fresh candidate build,
-and local tests/builds pass after installing normal Tauri Linux prerequisites.
-However, this desktop-app candidate is **not releasable**:
+Release tag: `v0.1.2`, resolving to the implementation SHA above
 
-1. **Critical:** downloadable v0.1.0 artifacts resolve to tag commit
-   `f1f41173b7031870504352181ed35a2b23ff02ee`, while the candidate changes
-   `src/main.ts` to add the required desktop sample project/demo behavior.
-   The live landing therefore points to a stale desktop app, not the candidate.
-2. **High:** hashed live assets are served with `Cache-Control: public,
-   must-revalidate, max-age=30`, not the required one-year immutable cache
-   policy configured in the repository.
-3. **High:** `.factory/claims.json` has only five registered claims, while the
-   landing and README retain many unregistered promises about read-only scans,
-   hashing, restore safety, privacy, coverage, and limits.
+Release workflow: GitHub Actions run `34012760351`, all verify, Linux, Windows,
+macOS ARM64, macOS Intel, and publish jobs passed
 
-All five declared claim commands passed after `npm ci`; full Playwright is
-recorded as passed (22 tests), `npm test` passed (3 Vitest + 4 Rust),
-`npm run build` passed, live axe serious/critical findings were zero at desktop
-and 390 px, and Lighthouse measured 100/100/100/100 with 1.2 s LCP. License
-verification rate limiting was observed: 29×200 and 11×429 in 40 rapid requests,
-with `Retry-After: 2`. A Linux AppImage installed into an isolated temporary
-directory and its checksum matched. Full evidence and exact remedial actions are
-in `.factory/verification.md`.
+Static deployment: `6cf515f8-0b7c-4283-a980-25a8a8eb511c`
 
-## Repair 1 — release metadata and demo compliance (2026-08-28)
+Live URL: https://retro-save-portability.sociobot.in
 
-- Reproduced the deployed-site defect: the old request to
-  `github.com/.../releases/latest/download/latest.json` responds with a 302
-  download redirect without `Access-Control-Allow-Origin`, while the GitHub
-  Releases API responds with `Access-Control-Allow-Origin: *`.
-- Replaced that browser fetch with
-  `https://api.github.com/repos/B-Divyesh/sf-retro-save-portability/releases/latest`.
-  Successful metadata is cached in `localStorage` as `rsp:latest-release:v1`
-  for one hour. Installer buttons now resolve `browser_download_url` assets from
-  the API; they may navigate to GitHub but are never fetched as page data.
-- Missing release, rate-limit, malformed response, storage failure, and offline
-  paths are caught and render “Downloads are being published” plus the direct
-  GitHub Releases page. No exception escapes the release loader.
-- Added `/demo/`, a three-save sample transfer desk with persistent demo banner,
-  reset, and start-for-real actions. It uses only
-  `demo:retro-save-portability:sample`; the desktop first-run view now also has
-  **Load sample project** under `demo:retro-save-portability:desktop`.
-- Added `.factory/claims.json`, `.factory/demo.md`, and `.factory/copy-audit.md`.
-  The landing first screen now uses plain, job-focused copy and links straight to
-  the sample data. Added canonical/OG/Twitter metadata, static-web-app headers,
-  a 404 page, demo sitemap entry, and the CORS API CSP allowance.
+The documentation commit containing this report follows the implementation
+commit. It is not tagged and does not change the released desktop image.
 
-### Repair verification
+The earlier independent FAIL remains in `.factory/verification.md` as history.
+Its three blocking findings are fixed:
 
-Run from a clean checkout:
+1. The downloadable desktop release is now `v0.1.2`, built from the tested
+   implementation SHA. The prior `v0.1.0` release and failed `v0.1.1` workflow
+   are not the latest release. A clean consumer install opened the shipped app,
+   loaded three sample saves, kept the demo label visible, and reached bundle
+   review.
+2. Live hashed JavaScript, CSS, AVIF, and WebP assets return
+   `Cache-Control: public, max-age=31536000, immutable`. HTML remains short-lived.
+3. `.factory/claims.json` now registers 15 public claims. Each has one uniquely
+   tagged outcome test. All 15 documented commands passed independently.
 
-```sh
-npm ci
-npm run build
-npm test
-npm run test:e2e
-```
+## What changed
 
-Verified on 2026-08-28:
+- Expanded the native safety suite to prove read-only scanning, all 15 supported
+  extensions, 11 emulator-folder signals, the 128 MiB boundary, ROM/BIOS
+  exclusion, bundle contents, readable manifests, hashes, overwrite approval,
+  and rejection of tampering, traversal, duplicates, oversized entries,
+  unsupported formats, and escaping symlinks.
+- Added release-manifest and installer-consumer tests. The installer is exercised
+  with mismatched and valid checksums in isolated directories.
+- Added desktop and web sample outcome checks. They cover three populated saves,
+  persistent demo labeling, bundle review, reset, leaving demo mode, and a real
+  storage sentinel that remains untouched.
+- Disabled Keeper storage access inside the desktop demo. Demo state uses only
+  the documented `demo:retro-save-portability:*` namespace.
+- Added privacy checks for the website, web demo, and desktop sample flow.
+- Added a production-format Static Web Apps test server so cache and 404 behavior
+  are asserted from HTTP responses.
+- Rewrote public copy in plain task language, removed broken checkout links,
+  added real product screenshots, and completed route titles, social artwork,
+  legal pages, and the designed 404 response.
+- Kept the $19 one-time Keeper deliverable and license restore path. Public copy
+  states that checkout awaits billing registration.
 
-- `npm run build`: passed. `dist/app` and `dist/site` produced. Landing JavaScript
-  is 1.89 KB gzip; demo JavaScript is 0.70 KB gzip; site CSS is 3.53 KB gzip.
-- `npm test`: passed — 3 Vitest tests and 4 Rust core tests.
-- `npm run test:e2e`: passed — 21 passed, 1 intentional project skip. Chromium
-  desktop and 390px mobile cover keyboard interaction, no-overflow mobile
-  layout, axe serious/critical checks, title/lang/main/h1/alt, console-free
-  successful release loading, API-cache behaviour, unavailable-release fallback,
-  desktop sample project, isolated demo storage, and demo third-party-network
-  privacy.
-- Every entry in `.factory/claims.json` was run individually with its listed
-  Playwright grep command and passed for desktop and mobile.
-- Live identity check: GitHub API `releases/latest` returned 200 with
-  `access-control-allow-origin: *`; the previous latest-download endpoint
-  returned a 302 redirect and no CORS response header, confirming the root cause.
+## Clean verification
 
-### Repair deployment
-
-The exact static deployment command remains `npm run build:site`, publishing
-`dist/site`. Deployment configuration is repository-static (`public/_headers`
-and `public/staticwebapp.config.json`). The factory static deployment completed
-on 2026-08-28 as deployment `841a0965-e97d-4710-9a61-44ae8058469d` to
-`https://nice-pond-01751cc10.7.azurestaticapps.net`, with the production custom
-domain returning HTTPS 200. Final `verify-url.sh` evidence: load 670 ms, zero
-browser errors, title/lang/main/h1/alt all present, and zero unlabeled buttons.
-
-## What shipped
-
-- Tauri 2 desktop app with a Rust-only filesystem boundary and responsive vanilla
-  TypeScript UI.
-- Read-only detection for 14 hardware-save extensions, 11 emulator folder
-  families, timestamps, sizes, format labels, confidence, and SHA-256 hashes.
-- Portable `.rspbundle` ZIP export with versioned JSON manifest, original relative
-  paths, an optional transfer note, and no ROM/BIOS collection.
-- Restore preflight that calls out unknown formats/emulators and exact overwrite
-  destinations before writing. Restore checks size and SHA-256, rejects traversal,
-  duplicate, oversized, and symlink-escape paths, and uses a rollback backup for
-  replacements.
-- Optional $19 Keeper unlock via the Sociobot billing API, including paste-to-
-  restore licensing, daily verification cache, reusable local device label, and
-  a 100-entry local transfer journal. Core preservation and safety remain free.
-- Cassette-era zine interface, original generated hero artwork, responsive AVIF
-  and WebP derivatives, a custom app icon, legal pages, compatibility field guide,
-  OS-detected downloads, and checksum-verifying shell/PowerShell installers.
-- GitHub Actions release matrix for macOS ARM64/Intel DMG, Windows MSI/NSIS, and
-  Linux AppImage/DEB; publishing also produces `SHA256SUMS` and `latest.json`.
-
-## Run and verify
+The documented Linux Tauri packages were installed first:
 
 ```sh
+sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 npm ci
 npm test
 npm run build
 npm run test:e2e
 ```
 
-The static deploy command is exactly `npm run build:site`; output is
-`dist/site/index.html`. Tauri embeds `dist/app`.
+Results on 2026-09-06:
 
-Verified locally on 2026-08-28:
+- `npm test`: 15 claim registrations validated, 8 Vitest outcomes passed, and 7
+  Rust tests passed.
+- A deliberately cold Rust target rebuild also passed the unit suite in 150.36
+  seconds. This reproduced and fixed the original CI worker-heartbeat failure.
+- `npm run build`: passed TypeScript checks and produced `dist/app` and
+  `dist/site`.
+- `npm run test:e2e`: 33 passed and one intentional mobile-only project skip.
+  It covers desktop and 390 px layouts, keyboard focus, reduced motion, axe,
+  route titles, demo isolation, privacy, cache responses, and HTTP 404 behavior.
+- Every `test` command in `.factory/claims.json` was run separately and passed.
+- Initial site JavaScript is 1.89 KB gzip and CSS is 3.63 KB gzip. The mobile
+  hero AVIF is 19.5 KB.
+- Live Lighthouse 13.4.1 mobile scores: Performance 99, Accessibility 100, Best
+  Practices 100, SEO 100. FCP was 1.16 s, LCP 1.92 s, TBT 45 ms, and CLS 0.
+- Factory `verify-url.sh`: HTTPS 200, 936 ms network-idle load, no console errors,
+  one `h1`, `lang=en`, a main landmark, complete image alt text, and no unlabeled
+  buttons.
+- Live Playwright axe checks found zero violations on home, demo, privacy, terms,
+  and emulator-notes pages at desktop and phone sizes.
+- The live site index and hashed JavaScript are byte-identical to `dist/site`.
+  A crawl found no broken internal, source, or installer links. The expected
+  unknown route returns HTTP 404 with the product-styled recovery page.
 
-- `npm test`: 3 Vitest tests and 4 Rust core tests passed.
-- `npm run build`: passed; app JS 16.69 KB and CSS 9.89 KB, landing JS 4.24 KB
-  and CSS 11.06 KB (uncompressed), all under budget.
-- `npm run test:e2e`: 11 passed, 1 intentional project skip; landing, app shell,
-  help, privacy, and terms audited with axe in Chromium at desktop and 390 px;
-  no serious/critical findings and no horizontal overflow.
-- Lighthouse 12.8.2, mobile profile against the production build: Performance
-  100, Accessibility 100, Best Practices 100, SEO 100; FCP 0.9 s, LCP 1.2 s,
-  TBT 0 ms, CLS 0.
-- Hero assets: 768 px AVIF 20 KB / WebP 48 KB; 1280 px AVIF 76 KB / WebP
-  156 KB. Source, prompt, review, and provenance are in `assets/src/` and
-  `.factory/design.md`.
-- Release workflow run `33156187991`: all four build jobs and the publish job
-  passed. The v0.1.0 release contains both macOS DMGs, Windows MSI/EXE, Linux
-  AppImage/DEB, `SHA256SUMS`, and valid six-platform `latest.json`. Independently
-  downloaded and verified the Linux DEB at SHA-256
-  `ed184aa8243ea2df97fad43a05742b3b172246211625cd483b95d3d6920b1694`.
+## Release and consumer evidence
 
-## Known gaps
+The latest release contains:
 
-- Detection is intentionally evidence-based, not content-database matching. An
-  unfamiliar folder can be classified only by extension and is marked “review”.
-- v0.1 does not convert formats or move directory-based saves such as PPSSPP or
-  Wii NAND packages. The field guide sends users to emulator-native tools.
-- Region, game revision, core, firmware, and memory-card-layout incompatibilities
-  cannot always be inferred from a save file. The product never promises a match.
-- The 90% second-machine pilot restore target needs real-user measurement after
-  release; automated round trips pass for detected saves.
+- macOS Apple Silicon DMG
+- macOS Intel DMG
+- Windows MSI and NSIS EXE
+- Linux AppImage and DEB
+- `SHA256SUMS` and a valid six-platform `latest.json`
+
+Downloaded checksums:
+
+- Linux AppImage:
+  `89b1d49aa118bc9b53cc92cb50f4e004ce9abc982aca7e2d337b0b9df6c320c2`
+- Linux DEB:
+  `7e27dd48073079bb2956b9071cb6e151b30f9204e066e9ecb6f025d7b3302c1f`
+
+Both matched the published checksum file. The live one-line installer downloaded
+and verified the AppImage into a new temporary consumer directory. That installed
+artifact launched as v0.1.2 and loaded the three-save sample without touching
+real files.
+
+## Live behavior checked
+
+- Fresh 1440 px desktop and 390 px phone sessions show the job, audience, sample
+  action, and three facts before scrolling, with no horizontal overflow.
+- The download button resolves through the GitHub API to a real v0.1.2 asset.
+- Sample review reports three saves and 168 KB. Reset restores sample state.
+  Starting for real deletes only the demo key; a real-data sentinel is unchanged.
+- Home and demo produced no console or page errors. The demo made no unexpected
+  third-party requests.
+- Privacy, terms, and emulator-notes routes return 200 with distinct titles and
+  one `h1`. Unknown routes return the intended 404 response.
+- An invalid Keeper token returns HTTP 200 with `valid:false`, focuses the dialog
+  close button on open, and shows a recovery message. The earlier independent
+  rate-limit evidence remains 29 successful responses and 11 HTTP 429 responses
+  with `Retry-After: 2` in a 40-request burst.
+
+## Known limits
+
+- Detection is evidence-based, not content-database matching. Unknown folders
+  can be classified by extension only and are marked for review.
+- Version 0.1.2 does not convert save formats or move directory-based saves such
+  as Wii NAND packages. Emulator notes direct people to emulator-native tools.
+- Region, revision, core, firmware, and memory-card differences cannot always be
+  inferred. Users must keep the source until the destination game loads.
+- The 90% second-machine pilot target still needs real-user measurement.
+- Installers are unsigned. macOS and Windows may show publisher warnings.
+- Billing registration is still absent. The checkout endpoint returns 404, so no
+  purchase link is exposed. Free scanning, bundles, restore, and safety remain
+  available; Keeper’s paid device labels and 100-entry local history are retained
+  behind license verification. Offer metadata is in
+  `.factory/billing-offer.json` and `/work/.evidence/billing-offer.json`.
 
 ## Needs operator action
 
-1. Register `retro-save-portability` in the Sociobot billing engine with a $19
-   one-time Keeper price and return URL
+1. Register the exact offer in `.factory/billing-offer.json`: Keeper, USD 19.00,
+   one-time, returning to
    `https://retro-save-portability.sociobot.in/?license={token}`.
-2. Deploy `dist/site` at the product hostname after the release is published.
-3. Current v0.1 installers are deliberately unsigned. For signed builds, add the
-   Apple signing/notarisation step using `APPLE_CERTIFICATE`,
-   `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`,
-   `APPLE_PASSWORD`, and `APPLE_TEAM_ID`; add the Windows certificate import/sign
-   step using `WINDOWS_CERT_PFX` and `WINDOWS_CERT_PASSWORD`. These secrets are not
-   present or required by the unsigned workflow.
-4. Keep the source folders until the destination emulator has loaded each save.
-   This warning is already present in the UI and documentation.
+2. Add platform-signing credentials only when signed distribution is required.
+   The workflow documents the expected Apple and Windows secret names; no secret
+   is present in this repository.
+
+## Deployment
+
+Build and deploy only the static site:
+
+```sh
+npm run build:site
+/opt/fleet/lib/deploy-static.sh retro-save-portability dist/site
+```
+
+The desktop release is built only by the tag-triggered GitHub Actions workflow.
