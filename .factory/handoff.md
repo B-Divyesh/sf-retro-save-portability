@@ -1,15 +1,15 @@
-# Retro Save Portability v0.1.2 handoff
+# Retro Save Portability v0.1.3 handoff
 
 ## Repair 2 status — PASS (2026-09-06)
 
-Implementation SHA: `b996da94240d3930e4497d45721751b27bf2e54d`
+Implementation SHA: `3f2a55e5fe39c4f446fe8b0dbc755fd11a81653e`
 
-Release tag: `v0.1.2`, resolving to the implementation SHA above
+Release tag: `v0.1.3`, resolving to the implementation SHA above
 
-Release workflow: GitHub Actions run `34012760351`, all verify, Linux, Windows,
+Release workflow: GitHub Actions run `34013709344`, all verify, Linux, Windows,
 macOS ARM64, macOS Intel, and publish jobs passed
 
-Static deployment: `6cf515f8-0b7c-4283-a980-25a8a8eb511c`
+Static deployment: `1f176f75-ebbb-47b8-9249-b8c0bd48cdbf`
 
 Live URL: https://retro-save-portability.sociobot.in
 
@@ -19,7 +19,7 @@ commit. It is not tagged and does not change the released desktop image.
 The earlier independent FAIL remains in `.factory/verification.md` as history.
 Its three blocking findings are fixed:
 
-1. The downloadable desktop release is now `v0.1.2`, built from the tested
+1. The downloadable desktop release is now `v0.1.3`, built from the tested
    implementation SHA. The prior `v0.1.0` release and failed `v0.1.1` workflow
    are not the latest release. A clean consumer install opened the shipped app,
    loaded three sample saves, kept the demo label visible, and reached bundle
@@ -43,6 +43,8 @@ Its three blocking findings are fixed:
   storage sentinel that remains untouched.
 - Disabled Keeper storage access inside the desktop demo. Demo state uses only
   the documented `demo:retro-save-portability:*` namespace.
+- Cleared the sample notice and bundle plan when leaving desktop demo mode. The
+  regression check asserts that real mode has no stale demo message.
 - Added privacy checks for the website, web demo, and desktop sample flow.
 - Added a production-format Static Web Apps test server so cache and 404 behavior
   are asserted from HTTP responses.
@@ -78,9 +80,10 @@ Results on 2026-09-06:
 - Every `test` command in `.factory/claims.json` was run separately and passed.
 - Initial site JavaScript is 1.89 KB gzip and CSS is 3.63 KB gzip. The mobile
   hero AVIF is 19.5 KB.
-- Live Lighthouse 13.4.1 mobile scores: Performance 99, Accessibility 100, Best
-  Practices 100, SEO 100. FCP was 1.16 s, LCP 1.92 s, TBT 45 ms, and CLS 0.
-- Factory `verify-url.sh`: HTTPS 200, 936 ms network-idle load, no console errors,
+- Live Lighthouse 13.4.1 mobile scores: Performance 100, Accessibility 100,
+  Best Practices 100, SEO 100. FCP was 0.99 s, LCP 1.04 s, TBT 45.5 ms, and
+  CLS 0.
+- Factory `verify-url.sh`: HTTPS 200, 858 ms network-idle load, no console errors,
   one `h1`, `lang=en`, a main landmark, complete image alt text, and no unlabeled
   buttons.
 - Live Playwright axe checks found zero violations on home, demo, privacy, terms,
@@ -102,20 +105,20 @@ The latest release contains:
 Downloaded checksums:
 
 - Linux AppImage:
-  `89b1d49aa118bc9b53cc92cb50f4e004ce9abc982aca7e2d337b0b9df6c320c2`
+  `cd208feb72fce7a4e32259fab26d0c8b893a1f0f683919f33f1e683c13c2e223`
 - Linux DEB:
-  `7e27dd48073079bb2956b9071cb6e151b30f9204e066e9ecb6f025d7b3302c1f`
+  `8cbfedbd8a11b94dded87f9ec52c6273e164bb24860fd8b7a2350d86cb64f9ea`
 
 Both matched the published checksum file. The live one-line installer downloaded
 and verified the AppImage into a new temporary consumer directory. That installed
-artifact launched as v0.1.2 and loaded the three-save sample without touching
-real files.
+artifact launched as v0.1.3, loaded and reset the three-save sample, then
+returned to a clean real-mode screen without changing the sentinel save.
 
 ## Live behavior checked
 
 - Fresh 1440 px desktop and 390 px phone sessions show the job, audience, sample
   action, and three facts before scrolling, with no horizontal overflow.
-- The download button resolves through the GitHub API to a real v0.1.2 asset.
+- The download button resolves through the GitHub API to a real v0.1.3 asset.
 - Sample review reports three saves and 168 KB. Reset restores sample state.
   Starting for real deletes only the demo key; a real-data sentinel is unchanged.
 - Home and demo produced no console or page errors. The demo made no unexpected
@@ -131,7 +134,7 @@ real files.
 
 - Detection is evidence-based, not content-database matching. Unknown folders
   can be classified by extension only and are marked for review.
-- Version 0.1.2 does not convert save formats or move directory-based saves such
+- Version 0.1.3 does not convert save formats or move directory-based saves such
   as Wii NAND packages. Emulator notes direct people to emulator-native tools.
 - Region, revision, core, firmware, and memory-card differences cannot always be
   inferred. Users must keep the source until the destination game loads.
