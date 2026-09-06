@@ -4,7 +4,8 @@ import { basename, resolve } from "node:path";
 
 const directory = resolve(process.argv[2] || "release-assets");
 const repository = process.env.GITHUB_REPOSITORY || "B-Divyesh/sf-retro-save-portability";
-const version = process.env.RELEASE_VERSION || "0.1.0";
+const packageJson = JSON.parse(await readFile(resolve("package.json"), "utf8"));
+const version = process.env.RELEASE_VERSION || packageJson.version;
 const files = (await readdir(directory)).filter(file => !file.endsWith(".json") && file !== "SHA256SUMS").sort();
 const mappings = [
   ["macos-arm64.dmg", "macos-arm64"], ["macos-x64.dmg", "macos-x64"],

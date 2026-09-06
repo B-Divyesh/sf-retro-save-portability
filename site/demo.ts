@@ -20,6 +20,7 @@ function reset(): void {
 }
 
 document.querySelector("#reset-demo")?.addEventListener("click", reset);
+document.querySelector("#start-real")?.addEventListener("click", () => localStorage.removeItem(DEMO_KEY));
 document.querySelector("#make-demo-bundle")?.addEventListener("click", () => {
   try {
     const current = JSON.parse(localStorage.getItem(DEMO_KEY) || "{}") as Record<string, unknown>;

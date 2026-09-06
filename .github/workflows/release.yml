@@ -9,6 +9,21 @@ permissions:
   contents: write
 
 jobs:
+  verify:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux system packages
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+
   build:
     strategy:
       fail-fast: false
@@ -75,7 +90,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    needs: build
+    needs: [verify, build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -88,8 +103,6 @@ jobs:
           merge-multiple: true
       - name: Create checksums and latest manifest
         run: node scripts/make-release-manifest.mjs release-assets
-        env:
-          RELEASE_VERSION: 0.1.0
       - name: Resolve release tag
         id: release
         shell: bash

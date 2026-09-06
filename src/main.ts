@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { addJournalEntry, DEVICE_KEY, JOURNAL_KEY, readJournal, saveDeviceLabel } from "./keeper";
 import { cachedLicenseValid, captureLicenseFromUrl, storeLicense, verifyLicense } from "./license";
 import "./styles.css";
 
@@ -45,9 +46,6 @@ interface ImportPlan {
 }
 
 type Step = "scan" | "bundle" | "restore";
-interface JournalEntry { date: string; action: "bundle" | "restore"; count: number; location: string; device: string; }
-const JOURNAL_KEY = "rsp:keeper-journal";
-const DEVICE_KEY = "rsp:keeper-device";
 const DEMO_KEY = "demo:retro-save-portability:desktop";
 
 const sampleScan: ScanResult = {
@@ -126,8 +124,8 @@ function scanView(): string {
     return `<section class="empty-state" aria-labelledby="scan-title">
       <div class="tape-mark" aria-hidden="true"><span></span><span></span></div>
       <p class="eyebrow">Read-only first pass</p>
-      <h2 id="scan-title">Find the progress worth carrying.</h2>
-      <p>Choose an emulator or saves folder. We look for known save formats, identify likely emulators, and fingerprint every match. Nothing is changed.</p>
+      <h2 id="scan-title">Find saves in a selected folder.</h2>
+      <p>Choose an emulator save folder. The app identifies supported formats and hashes each result without changing the source.</p>
       <div class="action-row"><button class="primary" type="button" id="choose-folder" ${state.busy ? "disabled" : ""}>${state.busy ? "Scanning…" : "Choose save folder"}</button><button class="secondary" type="button" id="load-sample">Load sample project</button></div>
       ${!isTauri() ? `<p class="inline-note">Folder scanning is available inside the desktop app. This browser view is a layout preview only.</p>` : ""}
       <details><summary>What gets scanned?</summary><p>Battery saves and memory-card files such as .srm, .sav, .dsv, .mcr, .gci and related sidecars. ROMs and BIOS files are ignored.</p></details>
@@ -152,21 +150,21 @@ function scanView(): string {
 
 function bundleView(): string {
   const selected = state.scan?.entries.filter(entry => state.selected.has(entry.id)) || [];
-  if (!selected.length) return `<section class="empty-state"><p class="eyebrow">Nothing queued</p><h2>Choose saves before making a bundle.</h2><button class="primary" data-step="scan">Return to scan</button></section>`;
+  if (!selected.length) return `<section class="empty-state"><p class="eyebrow">No saves selected</p><h2>Choose saves before making a bundle.</h2><button class="primary" data-step="scan">Return to scan</button></section>`;
   const total = selected.reduce((sum, entry) => sum + entry.size, 0);
-  return `<section aria-labelledby="bundle-title"><p class="eyebrow">Portable archive</p><h2 id="bundle-title">Label this bundle.</h2>
+  return `<section aria-labelledby="bundle-title"><p class="eyebrow">Portable bundle</p><h2 id="bundle-title">Add a note to this bundle.</h2>
     <div class="bundle-label"><div class="bundle-count"><strong>${selected.length}</strong><span>${selected.length === 1 ? "save" : "saves"}<br>${formatBytes(total)}</span></div>
       <div><label for="bundle-note">Transfer note <span>(optional)</span></label><textarea id="bundle-note" maxlength="500" rows="3" placeholder="e.g. Living-room PC → travel laptop"></textarea><p>Stored inside the bundle, only on your devices.</p></div></div>
     <details><summary>Included saves</summary><ul class="plain-list">${selected.map(entry => `<li><strong>${escapeHtml(entry.gameName)}</strong><span>${escapeHtml(entry.relativePath)}</span></li>`).join("")}</ul></details>
-    <div class="safety-strip"><strong>Integrity card included</strong><span>Every file gets a SHA-256 fingerprint. Restore checks it before writing.</span></div>
+    <div class="safety-strip"><strong>Integrity details included</strong><span>Every save gets a SHA-256 hash. Restore checks it before writing.</span></div>
     <div class="action-row"><button class="primary" type="button" id="create-bundle" ${state.busy ? "disabled" : ""}>${state.busy ? "Packing…" : "Create .rspbundle"}</button><button class="text-button" data-step="scan">Back to saves</button></div>
   </section>`;
 }
 
 function restoreView(): string {
-  if (!state.plan) return `<section class="empty-state" aria-labelledby="restore-title"><p class="eyebrow">Compatibility preflight</p><h2 id="restore-title">Open a bundle. Pick a destination.</h2><p>We inspect every save, compare the target emulator folder, flag replacements, and verify hashes before restoring.</p><button class="primary" id="open-bundle" type="button" ${state.busy ? "disabled" : ""}>${state.busy ? "Inspecting…" : "Choose bundle to restore"}</button></section>`;
+  if (!state.plan) return `<section class="empty-state" aria-labelledby="restore-title"><p class="eyebrow">Restore check</p><h2 id="restore-title">Choose a bundle and destination.</h2><p>The app checks each save, compares emulator folders, and shows replacements before restoring.</p><button class="primary" id="open-bundle" type="button" ${state.busy ? "disabled" : ""}>${state.busy ? "Inspecting…" : "Choose bundle to restore"}</button></section>`;
   const needsReview = state.plan.warningCount + state.plan.overwriteCount > 0;
-  return `<section aria-labelledby="plan-title"><p class="eyebrow">Restore preflight</p><h2 id="plan-title">Review before anything moves.</h2>
+  return `<section aria-labelledby="plan-title"><p class="eyebrow">Restore check</p><h2 id="plan-title">Review warnings before restoring.</h2>
     <div class="plan-summary"><span><strong>${state.plan.compatibleCount}</strong> compatible</span><span><strong>${state.plan.warningCount}</strong> review</span><span><strong>${state.plan.overwriteCount}</strong> replace</span></div>
     <p class="path">Target: ${escapeHtml(state.plan.targetRoot)}</p>
     ${state.plan.note ? `<blockquote>“${escapeHtml(state.plan.note)}”</blockquote>` : ""}
@@ -179,16 +177,16 @@ function restoreView(): string {
 function proPanel(): string {
   const journal = readJournal();
   const device = localStorage.getItem(DEVICE_KEY) || "";
-  return `<dialog id="license-dialog" aria-labelledby="license-title"><form method="dialog"><button class="dialog-close" value="cancel" aria-label="Close license panel">×</button><p class="eyebrow">Keeper edition</p><h2 id="license-title">${state.pro ? "License active" : "Keep a transfer journal"}</h2>
-    <p>Keeper is a one-time $19 purchase. It adds reusable device labels and a local transfer journal. Scanning, verified bundles, restore, accessibility, and safety remain free.</p>
-    ${state.pro ? `<p class="license-ok">✓ Keeper features are unlocked on this device.</p><label for="device-label">This device’s label</label><input id="device-label" maxlength="60" value="${escapeHtml(device)}" placeholder="e.g. Travel laptop"><button id="save-device-label" type="button" class="secondary">Save device label</button><h3>Local transfer journal</h3>${journal.length ? `<ul class="journal">${journal.slice(0, 8).map(item => `<li><strong>${item.action === "bundle" ? "Bundled" : "Restored"} ${item.count}</strong><span>${escapeHtml(item.device)} · ${dateLabel(item.date)}</span><small>${escapeHtml(item.location)}</small></li>`).join("")}</ul><button id="clear-journal" type="button" class="text-button">Clear transfer journal</button>` : `<p class="inline-note">New bundles and restores will be noted here, only on this device.</p>`}` : `<a class="primary button-link" href="https://api.sociobot.in/api/v1/products/retro-save-portability/checkout">Buy Keeper — $19 once</a><label for="license-token">Have a license? Paste it here</label><input id="license-token" autocomplete="off" spellcheck="false"><button id="restore-license" type="button" class="secondary">Verify license</button><p id="license-status" class="inline-note" aria-live="polite"></p>`}
-    <p class="legal-small">Sociobot/Dodo is merchant of record. Refunds are handled there and revoke the license. <a href="https://retro-save-portability.sociobot.in/privacy">Privacy</a> · <a href="https://retro-save-portability.sociobot.in/terms">Terms</a></p></form></dialog>`;
+  return `<dialog id="license-dialog" aria-labelledby="license-title"><form method="dialog"><button class="dialog-close" value="cancel" aria-label="Close license panel">×</button><p class="eyebrow">Keeper edition</p><h2 id="license-title">${state.pro ? "License active" : "Add device labels and history"}</h2>
+    <p>Keeper costs $19 once. It adds reusable device labels and local transfer history. Scanning, portable bundles, restore, accessibility, and safety remain free.</p>
+    ${state.pro ? `<p class="license-ok">✓ Keeper features are active on this device.</p><label for="device-label">This device’s label</label><input id="device-label" maxlength="60" value="${escapeHtml(device)}" placeholder="e.g. Travel laptop"><button id="save-device-label" type="button" class="secondary">Save device label</button><h3>Local transfer history</h3>${journal.length ? `<ul class="journal">${journal.slice(0, 8).map(item => `<li><strong>${item.action === "bundle" ? "Bundled" : "Restored"} ${item.count}</strong><span>${escapeHtml(item.device)} · ${dateLabel(item.date)}</span><small>${escapeHtml(item.location)}</small></li>`).join("")}</ul><button id="clear-journal" type="button" class="text-button">Clear transfer history</button>` : `<p class="inline-note">New bundles and restores will be listed here on this device.</p>`}` : `<p class="inline-note">Keeper costs $19 once. Checkout is awaiting billing registration.</p><label for="license-token">Have a license? Paste it here</label><input id="license-token" autocomplete="off" spellcheck="false"><button id="restore-license" type="button" class="secondary">Verify license</button><p id="license-status" class="inline-note" aria-live="polite"></p>`}
+    <p class="legal-small">Sociobot/Dodo is merchant of record. Refunds are handled there and revoke the license. <a href="https://retro-save-portability.sociobot.in/privacy/">Privacy</a> · <a href="https://retro-save-portability.sociobot.in/terms/">Terms</a></p></form></dialog>`;
 }
 
 function render(): void {
-  app.innerHTML = `<header class="app-header"><a class="wordmark" href="#" aria-label="Retro Save Portability home"><span class="logo-mark" aria-hidden="true"><i></i><i></i></span><span>Retro Save<br>Portability</span></a><button class="keeper-button" id="open-license" type="button">${state.pro ? "Keeper active" : "Unlock Keeper"}</button></header>
-    <main id="main">${state.demo ? `<div class="demo-banner" role="status"><p>Demo — sample data, nothing is saved to your real files.</p><div class="demo-banner-actions"><button type="button" id="reset-demo">Reset demo</button><button type="button" id="start-real">Start for real</button></div></div>` : ""}<div class="intro"><p class="kicker">Save-transfer desk · v0.1</p><h1>Carry your<br><em>progress.</em></h1><p>Find hardware saves, make a verified portable bundle, and restore with compatibility warnings—before changing launchers.</p></div>${rail()}<div class="workbench">${state.notice ? `<div class="notice ${state.notice.kind}" role="${state.notice.kind === "error" ? "alert" : "status"}">${escapeHtml(state.notice.text)}<button aria-label="Dismiss message" id="dismiss-notice">×</button></div>` : ""}${state.step === "scan" ? scanView() : state.step === "bundle" ? bundleView() : restoreView()}</div></main>
-    <footer><span>Local-first · No telemetry · No ROMs</span><a href="https://retro-save-portability.sociobot.in/help">Emulator notes</a></footer>${proPanel()}`;
+  app.innerHTML = `<header class="app-header"><a class="wordmark" href="#" aria-label="Retro Save Portability home"><span class="logo-mark" aria-hidden="true"><i></i><i></i></span><span>Retro Save<br>Portability</span></a><button class="keeper-button" id="open-license" type="button" ${state.demo ? "disabled" : ""}>${state.demo ? "Keeper unavailable in demo" : state.pro ? "Keeper active" : "Keeper license"}</button></header>
+    <main id="main">${state.demo ? `<div class="demo-banner" role="status"><p>Demo — sample data, nothing is saved to your real files.</p><div class="demo-banner-actions"><button type="button" id="reset-demo">Reset demo</button><button type="button" id="start-real">Start for real</button></div></div>` : ""}<div class="intro"><p class="kicker">Save transfer · v0.1.1</p><h1>Move retro<br><em>saves safely.</em></h1><p>For people changing emulators or computers: identify save files before moving them.</p></div>${rail()}<div class="workbench">${state.notice ? `<div class="notice ${state.notice.kind}" role="${state.notice.kind === "error" ? "alert" : "status"}">${escapeHtml(state.notice.text)}<button aria-label="Dismiss message" id="dismiss-notice">×</button></div>` : ""}${state.step === "scan" ? scanView() : state.step === "bundle" ? bundleView() : restoreView()}</div></main>
+    <footer><span>Local save processing · No telemetry · No ROMs</span><a href="https://retro-save-portability.sociobot.in/help/">Emulator notes</a></footer>${state.demo ? "" : proPanel()}`;
   bindEvents();
 }
 
@@ -224,28 +222,20 @@ function bindEvents(): void {
   document.querySelector("#open-license")?.addEventListener("click", () => (document.querySelector<HTMLDialogElement>("#license-dialog"))?.showModal());
   document.querySelector("#restore-license")?.addEventListener("click", restoreLicense);
   document.querySelector("#save-device-label")?.addEventListener("click", () => {
-    const label = document.querySelector<HTMLInputElement>("#device-label")?.value.trim() || "This device";
-    localStorage.setItem(DEVICE_KEY, label);
+    const label = saveDeviceLabel(document.querySelector<HTMLInputElement>("#device-label")?.value || "");
     setNotice("success", `Device label saved as “${label}”.`);
   });
   document.querySelector("#clear-journal")?.addEventListener("click", () => {
-    if (window.confirm("Clear the local Keeper transfer journal on this device? This cannot be undone.")) {
+    if (window.confirm("Clear the local Keeper transfer history on this device? This cannot be undone.")) {
       localStorage.removeItem(JOURNAL_KEY); render();
       document.querySelector<HTMLDialogElement>("#license-dialog")?.showModal();
     }
   });
 }
 
-function readJournal(): JournalEntry[] {
-  try { return JSON.parse(localStorage.getItem(JOURNAL_KEY) || "[]") as JournalEntry[]; }
-  catch { return []; }
-}
-
-function addJournal(entry: Omit<JournalEntry, "date" | "device">): void {
+function addJournal(entry: Parameters<typeof addJournalEntry>[0]): void {
   if (!state.pro) return;
-  const current = readJournal();
-  current.unshift({ ...entry, date: new Date().toISOString(), device: localStorage.getItem(DEVICE_KEY) || "Unlabelled device" });
-  localStorage.setItem(JOURNAL_KEY, JSON.stringify(current.slice(0, 100)));
+  addJournalEntry(entry);
 }
 
 async function scanFolder(): Promise<void> {

@@ -8,7 +8,7 @@ interface CachedRelease { savedAt: number; release: GitHubRelease; }
 
 const RELEASE_API = "https://api.github.com/repos/B-Divyesh/sf-retro-save-portability/releases/latest";
 const RELEASE_PAGE = "https://github.com/B-Divyesh/sf-retro-save-portability/releases/latest";
-const RELEASE_CACHE_KEY = "rsp:latest-release:v1";
+const RELEASE_CACHE_KEY = "rsp:latest-release:v2";
 const RELEASE_CACHE_MS = 60 * 60 * 1000;
 
 function detectedPlatform(): { key: string; label: string } {
@@ -97,7 +97,7 @@ document.querySelector("#verify-license")?.addEventListener("click", async () =>
   result.textContent = "Checking…";
   try {
     const verdict = await verifyLicense(true);
-    result.textContent = verdict?.valid ? "License active. Paste the same token into the desktop app to unlock Keeper." : "That license is not active. Check the token and try again.";
+    result.textContent = verdict?.valid ? "License active. Paste the same token into the desktop app to enable Keeper." : "That license is not active. Check the token and try again.";
   } catch { result.textContent = "License service unavailable. Try again when you are online."; }
 });
 

@@ -92,4 +92,10 @@ Prompt sheet (used verbatim as the base art direction):
 Generation: Azure AI Foundry factory image deployment via
 `/opt/fleet/lib/gen-image.sh`, 2026-08-28. Generated imagery is original for this
 product. Source PNG and prompt sidecar are retained in `assets/src/`; reviewed
-exports are shipped as WebP/AVIF under 300 KB.
+exports are shipped as WebP/AVIF under 300 KB. The 1200×630 social card is a
+center crop of that reviewed artwork. The Apple touch icon is derived from the
+original hand-authored app icon.
+
+The three walkthrough frames are screenshots of the product’s own v0.1.1 app
+UI, captured locally from the built sample flow on 2026-09-06. They contain no
+external imagery or user data and are shipped as lazy-loaded WebP files.

@@ -1,37 +1,107 @@
 [
   {
+    "id": "immutable-assets",
+    "claim": "Built JavaScript and CSS assets are served with one-year immutable caching.",
+    "where": "deployment configuration",
+    "test": "npm run test:e2e -- --grep @claim:immutable-assets",
+    "sandbox": "production-format static host; request a hashed asset and assert its HTTP Cache-Control response"
+  },
+  {
     "id": "release-api-cache",
     "claim": "The download button reads the latest GitHub release without a browser CORS error and caches a successful response for one hour.",
-    "where": "download ticket, README",
+    "where": "download section, README",
     "test": "npm run test:e2e -- --grep @claim:release-api-cache",
     "sandbox": "mock GitHub Releases API; reload the landing page and assert the asset link renders with one API request"
   },
   {
     "id": "published-download-state",
-    "claim": "When no release is available, the page says downloads are being published and links to GitHub releases.",
-    "where": "download ticket",
+    "claim": "When no release is available, the page explains that downloads are being published and links to GitHub releases.",
+    "where": "download section",
     "test": "npm run test:e2e -- --grep @claim:published-download-state",
-    "sandbox": "mock a 404 latest-release response and assert the calm fallback and no console errors"
+    "sandbox": "mock a 404 latest-release response and assert the fallback and absence of page errors"
+  },
+  {
+    "id": "release-manifest",
+    "claim": "The release process produces macOS ARM64 and Intel, Windows MSI and EXE, and Linux AppImage and DEB entries with SHA-256 values.",
+    "where": "download section, README",
+    "test": "npm run test:unit -- --testNamePattern @claim:release-manifest",
+    "sandbox": "six isolated artifact fixtures; generate latest.json and SHA256SUMS, then compare every entry and digest"
+  },
+  {
+    "id": "installer-checksum",
+    "claim": "The shell installer verifies SHA-256 and refuses a mismatched download before installation.",
+    "where": "download section, README",
+    "test": "npm run test:unit -- --testNamePattern @claim:installer-checksum",
+    "sandbox": "isolated fake download and install directories; exercise mismatch and valid-checksum outcomes"
   },
   {
     "id": "demo-sandbox",
-    "claim": "The web demo uses sample data in a separate browser-storage namespace.",
-    "where": "landing action, /demo",
+    "claim": "The web demo loads three sample saves, resets them, and removes its separate demo state when starting for real.",
+    "where": "landing action, /demo, README",
     "test": "npm run test:e2e -- --grep @claim:demo-sandbox",
-    "sandbox": "fresh browser context opens /demo, reviews the sample bundle, and checks only demo: storage is written"
+    "sandbox": "fresh browser context; use the full sample flow, reset it, leave it, and inspect browser storage"
   },
   {
     "id": "demo-privacy",
-    "claim": "The sample demo sends no data to a third party.",
+    "claim": "The web sample flow sends no data to a third party.",
     "where": "/demo, privacy page",
     "test": "npm run test:e2e -- --grep @claim:demo-privacy",
-    "sandbox": "fresh browser context records every request during the complete sample-bundle review"
+    "sandbox": "fresh browser context records every request during the complete sample review"
+  },
+  {
+    "id": "website-privacy",
+    "claim": "The website loads no advertising, analytics, tracking pixels, third-party fonts, or third-party scripts.",
+    "where": "privacy page",
+    "test": "npm run test:e2e -- --grep @claim:website-privacy",
+    "sandbox": "fresh browser context records landing requests and inspects script, stylesheet, and preload origins"
   },
   {
     "id": "desktop-sample-project",
-    "claim": "The desktop app can load a sample project without choosing a folder.",
+    "claim": "The desktop app loads, reviews, resets, and exits a three-save sample project without choosing a folder.",
     "where": "desktop first-run screen, README",
     "test": "npm run test:e2e -- --grep @claim:desktop-sample-project",
-    "sandbox": "fresh browser app shell clicks Load sample project and asserts three sample saves and demo storage"
+    "sandbox": "fresh browser app shell completes the sample flow and checks its isolated demo storage"
+  },
+  {
+    "id": "app-network-privacy",
+    "claim": "Save work is local and the desktop sample flow sends no save data or telemetry.",
+    "where": "landing, desktop footer, privacy page, README",
+    "test": "npm run test:e2e -- --grep @claim:app-network-privacy",
+    "sandbox": "fresh desktop app shell records all requests during sample scan, bundle review, and reset"
+  },
+  {
+    "id": "native-scan",
+    "claim": "A scan does not change source files, recognises 15 save extensions and 11 emulator folders, hashes saves, ignores ROM and BIOS extensions, and skips files over 128 MiB.",
+    "where": "landing, desktop scan, README",
+    "test": "npm run test:unit -- --testNamePattern @claim:native-scan",
+    "sandbox": "temporary native folder with every supported extension, every emulator name, ignored files, an exact-limit file, and an oversized file"
+  },
+  {
+    "id": "native-bundle",
+    "claim": "A .rspbundle is a deflated ZIP containing selected saves and a readable versioned JSON manifest with paths, metadata, and SHA-256 hashes.",
+    "where": "landing, desktop bundle, README",
+    "test": "npm run test:unit -- --testNamePattern @claim:native-bundle",
+    "sandbox": "temporary native source with selected, unselected, and ROM files; read the resulting archive as a consumer"
+  },
+  {
+    "id": "native-restore",
+    "claim": "Restore warns about emulator differences and replacements, requires replacement approval, and rejects bad hashes, sizes, paths, duplicates, formats, limits, and escaping symlinks.",
+    "where": "landing, desktop restore, README",
+    "test": "npm run test:unit -- --testNamePattern @claim:native-restore",
+    "sandbox": "temporary native bundles and targets cover normal restore, overwrite recovery, tampering, traversal, duplicates, limits, formats, and symlinks"
+  },
+  {
+    "id": "license-verification",
+    "claim": "A returned Keeper token is stored locally, removed from the address bar, verified with Sociobot, and its verdict is reused for no more than one day.",
+    "where": "landing license form, privacy page, README",
+    "test": "npm run test:unit -- --testNamePattern @claim:license-verification",
+    "sandbox": "browser storage and recorded verification responses cover URL return, daily cache expiry, and revoked verdict"
+  },
+  {
+    "id": "keeper-local-features",
+    "claim": "Keeper stores a reusable device label and up to 100 transfer-history entries on the device.",
+    "where": "landing Keeper section, desktop Keeper panel, README",
+    "test": "npm run test:unit -- --testNamePattern @claim:keeper-local-features",
+    "sandbox": "isolated browser storage saves one device label and 105 transfer entries, then checks the retained latest 100"
   }
 ]

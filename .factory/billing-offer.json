@@ -1,0 +1,14 @@
+{
+  "slug": "retro-save-portability",
+  "name": "Retro Save Portability Keeper",
+  "price_minor": 1900,
+  "currency": "USD",
+  "price_type": "one_time_price",
+  "return_url": "https://retro-save-portability.sociobot.in/?license={token}",
+  "price_evidence": "The public Keeper section and terms state a $19 one-time license.",
+  "paid_features": [
+    "Reusable device labels",
+    "Local transfer history with up to 100 entries"
+  ],
+  "license_validation_path": "/api/v1/products/retro-save-portability/verify"
+}

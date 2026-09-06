@@ -255,7 +255,7 @@ fn scan_directory(path: String) -> AppResult<ScanResult> {
             Ok(meta) if meta.len() > MAX_SAVE_BYTES => {
                 skipped_files += 1;
                 warnings.push(format!(
-                    "Skipped {} because it is larger than 128 MB.",
+                    "Skipped {} because it is larger than 128 MiB.",
                     item.path().display()
                 ));
             }
@@ -392,7 +392,7 @@ fn read_manifest(bundle: &str) -> AppResult<BundleManifest> {
         }
         if entry.size > MAX_SAVE_BYTES {
             return Err(AppError::Invalid(format!(
-                "{} exceeds the 128 MB save-file safety limit.",
+                "{} exceeds the 128 MiB save-file safety limit.",
                 entry.file_name
             )));
         }
@@ -555,6 +555,7 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn temp_dir(label: &str) -> PathBuf {
@@ -565,6 +566,21 @@ mod tests {
         let path = std::env::temp_dir().join(format!("rsp-{label}-{nonce}"));
         fs::create_dir_all(&path).unwrap();
         path
+    }
+
+    fn write_test_bundle(path: &Path, manifest: &BundleManifest, files: &[(&str, &[u8])]) {
+        let file = File::create(path).unwrap();
+        let mut zip = ZipWriter::new(file);
+        let options =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        for (name, bytes) in files {
+            zip.start_file(format!("files/{name}"), options).unwrap();
+            zip.write_all(bytes).unwrap();
+        }
+        zip.start_file("manifest.json", options).unwrap();
+        zip.write_all(serde_json::to_string_pretty(manifest).unwrap().as_bytes())
+            .unwrap();
+        zip.finish().unwrap();
     }
 
     #[test]
@@ -656,5 +672,259 @@ mod tests {
     fn rejects_unsafe_bundle_paths() {
         assert!(safe_relative("../../escape.sav").is_err());
         assert!(safe_relative("safe/game.sav").is_ok());
+    }
+
+    #[test]
+    fn claim_scan_safety_coverage_and_boundaries() {
+        let root = temp_dir("claim-scan");
+        let emulator_folders = [
+            "RetroArch",
+            "DuckStation",
+            "PCSX2",
+            "Dolphin",
+            "mGBA",
+            "VisualBoyAdvance",
+            "DeSmuME",
+            "melonDS",
+            "Snes9x",
+            "PPSSPP",
+            "BizHawk",
+        ];
+        for (index, extension) in SAVE_EXTENSIONS.iter().enumerate() {
+            let folder = root.join(emulator_folders[index % emulator_folders.len()]);
+            fs::create_dir_all(&folder).unwrap();
+            fs::write(folder.join(format!("save-{index}.{extension}")), extension.as_bytes())
+                .unwrap();
+        }
+        let protected = root.join("RetroArch/protected.srm");
+        fs::write(&protected, b"unchanged-progress").unwrap();
+        let protected_before = fs::read(&protected).unwrap();
+        fs::write(root.join("RetroArch/game.rom"), b"copyrighted game data").unwrap();
+        fs::write(root.join("RetroArch/console.bios"), b"firmware").unwrap();
+
+        let boundary = root.join("mGBA/exact-limit.sav");
+        File::create(&boundary).unwrap().set_len(MAX_SAVE_BYTES).unwrap();
+        let oversized = root.join("mGBA/over-limit.sav");
+        File::create(&oversized)
+            .unwrap()
+            .set_len(MAX_SAVE_BYTES + 1)
+            .unwrap();
+
+        let result = scan_directory(root.to_string_lossy().into()).unwrap();
+        assert_eq!(SAVE_EXTENSIONS.len(), 15);
+        assert_eq!(result.entries.len(), SAVE_EXTENSIONS.len() + 2);
+        assert_eq!(fs::read(&protected).unwrap(), protected_before);
+        assert!(result.entries.iter().all(|entry| entry.extension != "rom"));
+        assert!(result.entries.iter().all(|entry| entry.extension != "bios"));
+        assert!(result
+            .entries
+            .iter()
+            .any(|entry| entry.file_name == "exact-limit.sav" && entry.size == MAX_SAVE_BYTES));
+        assert!(!result
+            .entries
+            .iter()
+            .any(|entry| entry.file_name == "over-limit.sav"));
+        assert!(result
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("larger than 128 MiB")));
+        let detected: HashSet<_> = result
+            .entries
+            .iter()
+            .map(|entry| entry.emulator.as_str())
+            .filter(|emulator| *emulator != "Unknown emulator")
+            .collect();
+        assert_eq!(detected.len(), emulator_folders.len());
+        let protected_entry = result
+            .entries
+            .iter()
+            .find(|entry| entry.file_name == "protected.srm")
+            .unwrap();
+        assert_eq!(
+            protected_entry.sha256,
+            hex::encode(Sha256::digest(b"unchanged-progress"))
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn claim_bundle_contains_selected_saves_and_readable_manifest() {
+        let root = temp_dir("claim-bundle");
+        let save_dir = root.join("mGBA/saves");
+        fs::create_dir_all(&save_dir).unwrap();
+        let selected = save_dir.join("Golden_Sun.sav");
+        let unselected = save_dir.join("Other.srm");
+        let rom = root.join("Golden_Sun.gba");
+        fs::write(&selected, b"selected-progress").unwrap();
+        fs::write(&unselected, b"not-selected").unwrap();
+        fs::write(&rom, b"rom-data").unwrap();
+        let bundle = root.join("portable.rspbundle");
+
+        create_bundle(
+            root.to_string_lossy().into(),
+            vec![selected.to_string_lossy().into()],
+            bundle.to_string_lossy().into(),
+            Some("Desktop to handheld".into()),
+        )
+        .unwrap();
+
+        let mut archive = ZipArchive::new(File::open(&bundle).unwrap()).unwrap();
+        assert_eq!(archive.len(), 2);
+        let saved = archive.by_name("files/mGBA/saves/Golden_Sun.sav").unwrap();
+        assert_eq!(saved.compression(), zip::CompressionMethod::Deflated);
+        drop(saved);
+        assert!(archive.by_name("files/mGBA/saves/Other.srm").is_err());
+        assert!(archive.by_name("files/Golden_Sun.gba").is_err());
+        let mut manifest_text = String::new();
+        archive
+            .by_name("manifest.json")
+            .unwrap()
+            .read_to_string(&mut manifest_text)
+            .unwrap();
+        assert!(manifest_text.contains('\n'));
+        let manifest: BundleManifest = serde_json::from_str(&manifest_text).unwrap();
+        assert_eq!(manifest.bundle_version, 1);
+        assert_eq!(manifest.note.as_deref(), Some("Desktop to handheld"));
+        assert_eq!(manifest.files.len(), 1);
+        assert_eq!(manifest.files[0].relative_path, "mGBA/saves/Golden_Sun.sav");
+        assert_eq!(manifest.files[0].size, b"selected-progress".len() as u64);
+        assert_eq!(manifest.files[0].sha256.len(), 64);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn claim_restore_preflight_and_defences() {
+        let root = temp_dir("claim-restore-source");
+        let source_dir = root.join("mGBA/saves");
+        fs::create_dir_all(&source_dir).unwrap();
+        let save = source_dir.join("Golden_Sun.sav");
+        fs::write(&save, b"verified-progress").unwrap();
+        let bundle = root.join("portable.rspbundle");
+        create_bundle(
+            root.to_string_lossy().into(),
+            vec![save.to_string_lossy().into()],
+            bundle.to_string_lossy().into(),
+            None,
+        )
+        .unwrap();
+
+        let mismatch_target = temp_dir("DuckStation-target");
+        let mismatch = inspect_bundle(
+            bundle.to_string_lossy().into(),
+            mismatch_target.to_string_lossy().into(),
+        )
+        .unwrap();
+        assert_eq!(mismatch.warning_count, 1);
+        assert!(mismatch.items[0].message.contains("target looks like DuckStation"));
+
+        let target = temp_dir("claim-restore-target");
+        let destination = target.join("mGBA/saves/Golden_Sun.sav");
+        fs::create_dir_all(destination.parent().unwrap()).unwrap();
+        fs::write(&destination, b"older-progress").unwrap();
+        let overwrite = inspect_bundle(
+            bundle.to_string_lossy().into(),
+            target.to_string_lossy().into(),
+        )
+        .unwrap();
+        assert_eq!(overwrite.overwrite_count, 1);
+        assert!(import_bundle(
+            bundle.to_string_lossy().into(),
+            target.to_string_lossy().into(),
+            false,
+        )
+        .is_err());
+        assert_eq!(fs::read(&destination).unwrap(), b"older-progress");
+        import_bundle(
+            bundle.to_string_lossy().into(),
+            target.to_string_lossy().into(),
+            true,
+        )
+        .unwrap();
+        assert_eq!(fs::read(&destination).unwrap(), b"verified-progress");
+        assert!(!destination.with_extension("sav.rsp-tmp").exists());
+        assert!(!destination.with_extension("sav.rsp-backup").exists());
+
+        let manifest = read_manifest(bundle.to_str().unwrap()).unwrap();
+        let corrupt = root.join("corrupt.rspbundle");
+        write_test_bundle(
+            &corrupt,
+            &manifest,
+            &[("mGBA/saves/Golden_Sun.sav", b"tampered-progress")],
+        );
+        let corrupt_target = temp_dir("claim-corrupt-target");
+        assert!(import_bundle(
+            corrupt.to_string_lossy().into(),
+            corrupt_target.to_string_lossy().into(),
+            false,
+        )
+        .is_err());
+        assert!(!corrupt_target.join("mGBA/saves/Golden_Sun.sav").exists());
+
+        let mut unsafe_manifest = manifest.clone();
+        unsafe_manifest.files[0].relative_path = "../escape.sav".into();
+        let unsafe_bundle = root.join("unsafe.rspbundle");
+        write_test_bundle(&unsafe_bundle, &unsafe_manifest, &[("../escape.sav", b"x")]);
+        assert!(read_manifest(unsafe_bundle.to_str().unwrap()).is_err());
+
+        let mut duplicate_manifest = manifest.clone();
+        duplicate_manifest.files.push(duplicate_manifest.files[0].clone());
+        let duplicate_bundle = root.join("duplicate.rspbundle");
+        write_test_bundle(
+            &duplicate_bundle,
+            &duplicate_manifest,
+            &[("mGBA/saves/Golden_Sun.sav", b"verified-progress")],
+        );
+        assert!(read_manifest(duplicate_bundle.to_str().unwrap()).is_err());
+
+        let mut oversized_manifest = manifest.clone();
+        oversized_manifest.files[0].size = MAX_SAVE_BYTES + 1;
+        let oversized_bundle = root.join("oversized.rspbundle");
+        write_test_bundle(
+            &oversized_bundle,
+            &oversized_manifest,
+            &[("mGBA/saves/Golden_Sun.sav", b"verified-progress")],
+        );
+        assert!(read_manifest(oversized_bundle.to_str().unwrap()).is_err());
+
+        let mut unsupported_manifest = manifest.clone();
+        unsupported_manifest.files[0].extension = "exe".into();
+        let unsupported_bundle = root.join("unsupported.rspbundle");
+        write_test_bundle(
+            &unsupported_bundle,
+            &unsupported_manifest,
+            &[("mGBA/saves/Golden_Sun.sav", b"verified-progress")],
+        );
+        assert!(read_manifest(unsupported_bundle.to_str().unwrap()).is_err());
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::symlink;
+            let outside = temp_dir("claim-outside-target");
+            let symlink_target = temp_dir("claim-symlink-target");
+            symlink(&outside, symlink_target.join("linked")).unwrap();
+            let mut symlink_manifest = manifest.clone();
+            symlink_manifest.files[0].relative_path = "linked/Golden_Sun.sav".into();
+            symlink_manifest.files[0].size = b"verified-progress".len() as u64;
+            let symlink_bundle = root.join("symlink.rspbundle");
+            write_test_bundle(
+                &symlink_bundle,
+                &symlink_manifest,
+                &[("linked/Golden_Sun.sav", b"verified-progress")],
+            );
+            assert!(import_bundle(
+                symlink_bundle.to_string_lossy().into(),
+                symlink_target.to_string_lossy().into(),
+                false,
+            )
+            .is_err());
+            assert!(!outside.join("Golden_Sun.sav").exists());
+            fs::remove_dir_all(outside).unwrap();
+            fs::remove_dir_all(symlink_target).unwrap();
+        }
+
+        fs::remove_dir_all(root).unwrap();
+        fs::remove_dir_all(mismatch_target).unwrap();
+        fs::remove_dir_all(target).unwrap();
+        fs::remove_dir_all(corrupt_target).unwrap();
     }
 }

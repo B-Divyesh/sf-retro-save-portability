@@ -2,7 +2,7 @@
 set -eu
 
 REPOSITORY="B-Divyesh/sf-retro-save-portability"
-VERSION="0.1.0"
+VERSION="0.1.1"
 BASE="https://github.com/$REPOSITORY/releases/latest/download"
 INSTALL_TMP="$(mktemp -d)"
 trap 'rm -rf "$INSTALL_TMP"' EXIT INT TERM
