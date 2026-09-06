@@ -1,5 +1,29 @@
 # Retro Save Portability v0.1.3 handoff
 
+## Independent verification 2 — FAIL (2026-09-06)
+
+Independent QA reviewed implementation
+`3f2a55e5fe39c4f446fe8b0dbc755fd11a81653e` from documentation checkout
+`b7be0a2f010e219a6b913f143aff853c4f29ffb4` and release `v0.1.3`.
+
+Verdict: **FAIL — 4 findings and 5 untested public claims.** All 15 declared
+claim commands, the clean build, the 33-pass browser suite, live demo flow,
+release checksum, and installed AppImage sample flow passed. The remaining
+findings are:
+
+1. The Privacy page promises desktop license removal from the Keeper panel, but
+   the panel has no license-removal action.
+2. Five public promises still lack complete declared outcome tests: offline/no
+   account use, all OS-detection branches, unsigned platform installers,
+   uninstall bundle retention, and the complete free-feature boundary.
+3. Several phone links have 18–32 px hit areas, below the required 44 px.
+4. Demo, Privacy, Terms, and emulator-notes routes omit Open Graph and Twitter
+   card metadata.
+
+Full evidence and fixes are in `.factory/verification-2.md`. The implementation
+handoff below is retained as release history; its PASS label is not the current
+product verdict.
+
 ## Repair 2 status — PASS (2026-09-06)
 
 Implementation SHA: `3f2a55e5fe39c4f446fe8b0dbc755fd11a81653e`
